@@ -1,0 +1,8 @@
+source "C:/Users/Thanh/esp/master/esp-idf/components/bootloader/Kconfig.projbuild"
+source "C:/Users/Thanh/esp/master/esp-idf/components/esp_app_format/Kconfig.projbuild"
+source "C:/Users/Thanh/esp/master/esp-idf/components/esp_rom/Kconfig.projbuild"
+source "C:/Users/Thanh/esp/master/esp-idf/components/esptool_py/Kconfig.projbuild"
+source "C:/Users/Thanh/esp/master/esp-idf/components/partition_table/Kconfig.projbuild"
+source "D:/MicroPython/multi_device/main/Kconfig.projbuild"
+source "D:/ESP_PATH/esp-rainmaker/components/esp_rainmaker/Kconfig.projbuild"
+source "D:/ESP_PATH/esp-rainmaker/examples/common/app_network/Kconfig.projbuild"

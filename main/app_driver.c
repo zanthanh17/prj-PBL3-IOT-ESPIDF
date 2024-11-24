@@ -1,11 +1,3 @@
-/*
-   This example code is in the Public Domain (or CC0 licensed, at your option.)
-
-   Unless required by applicable law or agreed to in writing, this
-   software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
-   CONDITIONS OF ANY KIND, either express or implied.
-*/
-
 #include <sdkconfig.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/timers.h>
@@ -26,13 +18,12 @@
 #include <ws2812_led.h>
 #include "app_priv.h"
 
-static float g_temperature = DEFAULT_TEMPERATURE;
 static TimerHandle_t sensor_timer;
 
 /* Giá trị cảm biến hiện tại */
+static float g_temperature = DEFAULT_TEMPERATURE;
 static float g_ph_value = DEFAULT_PH;         // Giá trị pH ban đầu
 static float g_turbidity_value = DEFAULT_NTU; // Giá trị độ đục ban đầu
-static bool g_drain_state = false;            // Trạng thái máy xả nước
 static bool g_power_state = false;
 
 // Biến toàn cục cho SSD1306
@@ -40,10 +31,26 @@ static ssd1306_handle_t ssd1306_dev = NULL;
 
 static const char *TAG = "app_driver";
 
+/* Hàm đọc giá trị từ cảm biến nhiệt độ */
+static float read_temp_sensor()
+{
+    static float delta = 0.5;
+    g_temperature += delta;
+    if (g_temperature > 99)
+    {
+        delta = -0.5;
+    }
+    else if (g_temperature < 1)
+    {
+        delta = 0.5;
+    }
+
+    // Ghi log giá trị
+    return DEFAULT_TEMPERATURE;
+}
 /* Hàm đọc giá trị từ cảm biến pH */
 static float read_ph_sensor()
 {
-    // Đọc giá trị ADC
     int raw = adc1_get_raw(PH_SENSOR_GPIO);
     float voltage = raw * (3.3 / 4095); // Chuyển đổi giá trị ADC thành điện áp (0-3.3V)
 
@@ -92,7 +99,7 @@ static bool is_water_level_high()
 {
     int water_level = gpio_get_level(WATER_LEVEL_GPIO);
     ESP_LOGI(TAG, "Water level sensor state: %d", water_level);
-    return (water_level == 1); // Trả về true nếu phát hiện nước
+    return water_level; // Trả về true nếu phát hiện nước
 }
 
 void control_gpio(int gpio, bool state)
@@ -104,11 +111,11 @@ void control_gpio(int gpio, bool state)
 void check_sensor_and_control()
 {
     // Kiểm tra điều kiện tự động bật máy bơm
-    bool pump_state = (g_ph_value > 8 || g_ph_value < 6 || g_turbidity_value > 500);
+    bool pump_state = (g_turbidity_value > 500);
     control_gpio(PUMP_GPIO, pump_state);
 
     // Kiểm tra điều kiện tự động bật van xả
-    bool drain_state = (is_water_level_high());
+    bool drain_state = (is_water_level_high() == 1);
     pump_state = false;
     control_gpio(DRAIN_GPIO, drain_state);
 }
@@ -189,16 +196,6 @@ static void set_power_state(bool target)
 
 static void app_sensor_update(TimerHandle_t handle)
 {
-    static float delta = 0.5;
-    g_temperature += delta;
-    if (g_temperature > 99)
-    {
-        delta = -0.5;
-    }
-    else if (g_temperature < 1)
-    {
-        delta = 0.5;
-    }
 
     g_ph_value = read_ph_sensor();
     g_turbidity_value = read_turbidity_sensor();
@@ -263,7 +260,7 @@ void display_sensor_data()
 
 float app_get_current_temperature()
 {
-    return g_temperature;
+    return DEFAULT_TEMPERATURE;
 }
 
 float app_get_current_ph()
@@ -286,7 +283,7 @@ esp_err_t app_sensor_init(void)
 
     // Cấu hình GPIO cho cảm biến mực nước
     gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << WATER_LEVEL_GPIO),
+        .pin_bit_mask = ((uint64_t)1 << WATER_LEVEL_GPIO),
         .mode = GPIO_MODE_INPUT,
         .pull_up_en = GPIO_PULLUP_ENABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
@@ -296,6 +293,7 @@ esp_err_t app_sensor_init(void)
     // Đặt mặc định trạng thái máy xả nước
     gpio_set_level(DRAIN_GPIO, 0);
     gpio_set_level(PUMP_GPIO, 0);
+    gpio_set_level(WATER_LEVEL_GPIO, 0);
 
     g_temperature = DEFAULT_TEMPERATURE;
     g_ph_value = DEFAULT_PH; // Giá trị pH ban đầu
@@ -313,7 +311,6 @@ esp_err_t app_sensor_init(void)
 
 void app_driver_init()
 {
-
     // Khởi tạo I2C
     i2c_master_init();
 
@@ -328,34 +325,10 @@ void app_driver_init()
         .pull_up_en = GPIO_PULLUP_ENABLE,      // Không cần kéo lên
         .pull_down_en = GPIO_PULLDOWN_DISABLE, // Không cần kéo xuống
         .intr_type = GPIO_INTR_ANYEDGE,
-        .pin_bit_mask = ((uint64_t)1 << SERVO_GPIO)};
+        .pin_bit_mask = ((uint64_t)1 << SERVO_GPIO) | ((uint64_t)1 << PUMP_GPIO) | ((uint64_t)1 << DRAIN_GPIO)};
     gpio_config(&servo_conf);
-
-    // Cấu hình máy bơm nước
-    gpio_config_t pump_config = {
-        .pin_bit_mask = ((uint64_t)1 << PUMP_GPIO), // Chân máy bơm
-        .mode = GPIO_MODE_OUTPUT,                   // Chế độ Output
-        .pull_up_en = GPIO_PULLUP_ENABLE,           // Không cần kéo lên
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,      // Không cần kéo xuống
-        .intr_type = GPIO_INTR_DISABLE              // Không có ngắt
-    };
-    gpio_config(&pump_config);
-
-    // Cấu hình máy hút nước
-    gpio_config_t drain_config = {
-        .pin_bit_mask = ((uint64_t)1 << DRAIN_GPIO), // Chân máy xả
-        .mode = GPIO_MODE_OUTPUT,                    // Chế độ Output
-        .pull_up_en = GPIO_PULLUP_ENABLE,            // Không cần kéo lên
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,       // Không cần kéo xuống
-        .intr_type = GPIO_INTR_DISABLE               // Không có ngắt
-    };
-    gpio_config(&drain_config);
     app_indicator_init();
     app_sensor_init();
-
-    // Đặt trạng thái ban đầu cho GPIO
-    gpio_set_level(PUMP_GPIO, 0);  // Máy bơm tắt
-    gpio_set_level(DRAIN_GPIO, 0); // Van xả tắt
 }
 
 int IRAM_ATTR app_driver_set_state(bool state)

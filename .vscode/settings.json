@@ -14,6 +14,8 @@
     "esp_rmaker_core.h": "c",
     "iot_button.h": "c",
     "esp_log.h": "c",
-    "esp_lcd_panel_ssd1306.h": "c"
+    "esp_lcd_panel_ssd1306.h": "c",
+    "timers.h": "c",
+    "stdbool.h": "c"
   }
 }

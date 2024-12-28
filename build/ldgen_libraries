@@ -105,5 +105,7 @@ D:/MicroPython/multi_device/build/esp-idf/gpio_button/libgpio_button.a
 D:/MicroPython/multi_device/build/esp-idf/app_reset/libapp_reset.a
 D:/MicroPython/multi_device/build/esp-idf/ledc_driver/libledc_driver.a
 D:/MicroPython/multi_device/build/esp-idf/ws2812_led/libws2812_led.a
+D:/MicroPython/multi_device/build/esp-idf/DFRobotDFPlayerMini/libDFRobotDFPlayerMini.a
 D:/MicroPython/multi_device/build/esp-idf/onewire/libonewire.a
 D:/MicroPython/multi_device/build/esp-idf/ds18x20/libds18x20.a
+D:/MicroPython/multi_device/build/esp-idf/DFPlay/libDFPlay.a

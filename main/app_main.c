@@ -55,32 +55,32 @@ static esp_err_t write_cb(const esp_rmaker_device_t *device, const esp_rmaker_pa
 }
 
 /* Hàm callback trạng thái của máy bơm */
-static esp_err_t pump_write_cb(const esp_rmaker_device_t *device, const esp_rmaker_param_t *param,
-                               const esp_rmaker_param_val_t val, void *priv_data, esp_rmaker_write_ctx_t *ctx)
-{
-    if (ctx)
-    {
-        ESP_LOGI(TAG, "Received write request via : %s", esp_rmaker_device_cb_src_to_str(ctx->src));
-    }
-    const char *device_name = esp_rmaker_device_get_name(device);
-    const char *param_name = esp_rmaker_param_get_name(param);
-    if (strcmp(param_name, ESP_RMAKER_DEF_POWER_NAME) == 0)
-    {
-        ESP_LOGI(TAG, "Received value = %s for %s - %s",
-                 val.val.b ? "true" : "false", device_name, param_name);
-        if (strcmp(device_name, "Water Pump") == 0)
-        {
-            control_gpio(PUMP_GPIO, val.val.b);
-        }
-    }
-    else
-    {
-        /* Silently ignoring invalid params */
-        return ESP_OK;
-    }
-    esp_rmaker_param_update(param, val);
-    return ESP_OK;
-}
+// static esp_err_t pump_write_cb(const esp_rmaker_device_t *device, const esp_rmaker_param_t *param,
+//                                const esp_rmaker_param_val_t val, void *priv_data, esp_rmaker_write_ctx_t *ctx)
+// {
+//     if (ctx)
+//     {
+//         ESP_LOGI(TAG, "Received write request via : %s", esp_rmaker_device_cb_src_to_str(ctx->src));
+//     }
+//     const char *device_name = esp_rmaker_device_get_name(device);
+//     const char *param_name = esp_rmaker_param_get_name(param);
+//     if (strcmp(param_name, ESP_RMAKER_DEF_POWER_NAME) == 0)
+//     {
+//         ESP_LOGI(TAG, "Received value = %s for %s - %s",
+//                  val.val.b ? "true" : "false", device_name, param_name);
+//         if (strcmp(device_name, "Water Pump") == 0)
+//         {
+//             control_gpio(PUMP_GPIO, val.val.b);
+//         }
+//     }
+//     else
+//     {
+//         /* Silently ignoring invalid params */
+//         return ESP_OK;
+//     }
+//     esp_rmaker_param_update(param, val);
+//     return ESP_OK;
+// }
 
 /* Hàm callback trạng thái của máy xả */
 static esp_err_t drain_write_cb(const esp_rmaker_device_t *device, const esp_rmaker_param_t *param,
@@ -156,9 +156,9 @@ void app_main()
     esp_rmaker_node_add_device(node, turbidity_sensor_device);
 
     // Khởi tạo thiết bị bơm
-    pump_device = esp_rmaker_switch_device_create("Water Pump", NULL, false);
-    esp_rmaker_device_add_cb(pump_device, pump_write_cb, NULL);
-    esp_rmaker_node_add_device(node, pump_device);
+    // pump_device = esp_rmaker_switch_device_create("Water Pump", NULL, false);
+    // esp_rmaker_device_add_cb(pump_device, pump_write_cb, NULL);
+    // esp_rmaker_node_add_device(node, pump_device);
 
     // Khởi tạo thiết bị máy xả nước
     drain_device = esp_rmaker_switch_device_create("Water Drain", NULL, false);
@@ -179,6 +179,7 @@ void app_main()
     }
 
     app_driver_set_state(DEFAULT_SWITCH_POWER);
+    // xTaskCreate(DFPlay, "DFPlay", 1024 * 4, NULL, 2, NULL);
     while (1)
     {
         app_get_current_temperature();
@@ -186,6 +187,6 @@ void app_main()
         app_get_current_turbidity();
         display_sensor_data();
         check_sensor_and_control();
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 }

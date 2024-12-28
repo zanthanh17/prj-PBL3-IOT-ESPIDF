@@ -6,11 +6,16 @@
 /* GPIO cho cảm biến */
 #define PH_SENSOR_GPIO ADC1_CHANNEL_7
 #define TURBIDITY_SENSOR_GPIO ADC1_CHANNEL_6
-#define WATER_LEVEL_GPIO 32 // Cảm biến mực nước (Digital)
+#define WATER_LEVEL_GPIO 13 // Cảm biến mực nước (Digital)
 
-#define PUMP_GPIO 18  // Thêm GPIO cho bơm
+#define PUMP_GPIO 27  // Thêm GPIO cho bơmS
 #define DRAIN_GPIO 19 // Máy xả nước
 #define SERVO_GPIO 5  // GPIO cho servo
+#define MP3_GPIO GPIO_NUM_18
+
+#define CONFIG_TX_GPIO GPIO_NUM_16
+#define CONFIG_RX_GPIO GPIO_NUM_17
+#define UART_NUM UART_NUM_1
 
 /* Chu kỳ cập nhật cảm biến (giây) */
 #define SENSOR_UPDATE_PERIOD 15000
@@ -47,3 +52,4 @@ float app_get_current_turbidity();
 void control_gpio(int gpio, bool state);
 void display_sensor_data();
 void check_sensor_and_control();
+void DFPlay();

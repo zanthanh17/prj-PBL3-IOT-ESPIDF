@@ -999,6 +999,13 @@ D:/MicroPython/multi_device/build/esp-idf/ws2812_led/CMakeFiles/list_install_com
 D:/MicroPython/multi_device/build/esp-idf/ws2812_led/CMakeFiles/install.dir
 D:/MicroPython/multi_device/build/esp-idf/ws2812_led/CMakeFiles/install/local.dir
 D:/MicroPython/multi_device/build/esp-idf/ws2812_led/CMakeFiles/install/strip.dir
+D:/MicroPython/multi_device/build/esp-idf/DFRobotDFPlayerMini/CMakeFiles/__idf_DFRobotDFPlayerMini.dir
+D:/MicroPython/multi_device/build/esp-idf/DFRobotDFPlayerMini/CMakeFiles/edit_cache.dir
+D:/MicroPython/multi_device/build/esp-idf/DFRobotDFPlayerMini/CMakeFiles/rebuild_cache.dir
+D:/MicroPython/multi_device/build/esp-idf/DFRobotDFPlayerMini/CMakeFiles/list_install_components.dir
+D:/MicroPython/multi_device/build/esp-idf/DFRobotDFPlayerMini/CMakeFiles/install.dir
+D:/MicroPython/multi_device/build/esp-idf/DFRobotDFPlayerMini/CMakeFiles/install/local.dir
+D:/MicroPython/multi_device/build/esp-idf/DFRobotDFPlayerMini/CMakeFiles/install/strip.dir
 D:/MicroPython/multi_device/build/esp-idf/esp_idf_lib_helpers/CMakeFiles/edit_cache.dir
 D:/MicroPython/multi_device/build/esp-idf/esp_idf_lib_helpers/CMakeFiles/rebuild_cache.dir
 D:/MicroPython/multi_device/build/esp-idf/esp_idf_lib_helpers/CMakeFiles/list_install_components.dir
@@ -1019,3 +1026,10 @@ D:/MicroPython/multi_device/build/esp-idf/ds18x20/CMakeFiles/list_install_compon
 D:/MicroPython/multi_device/build/esp-idf/ds18x20/CMakeFiles/install.dir
 D:/MicroPython/multi_device/build/esp-idf/ds18x20/CMakeFiles/install/local.dir
 D:/MicroPython/multi_device/build/esp-idf/ds18x20/CMakeFiles/install/strip.dir
+D:/MicroPython/multi_device/build/esp-idf/DFPlay/CMakeFiles/__idf_DFPlay.dir
+D:/MicroPython/multi_device/build/esp-idf/DFPlay/CMakeFiles/edit_cache.dir
+D:/MicroPython/multi_device/build/esp-idf/DFPlay/CMakeFiles/rebuild_cache.dir
+D:/MicroPython/multi_device/build/esp-idf/DFPlay/CMakeFiles/list_install_components.dir
+D:/MicroPython/multi_device/build/esp-idf/DFPlay/CMakeFiles/install.dir
+D:/MicroPython/multi_device/build/esp-idf/DFPlay/CMakeFiles/install/local.dir
+D:/MicroPython/multi_device/build/esp-idf/DFPlay/CMakeFiles/install/strip.dir

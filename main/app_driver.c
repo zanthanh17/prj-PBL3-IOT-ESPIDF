@@ -4,10 +4,13 @@
 #include <driver/adc.h>
 #include "driver/ledc.h"
 #include <driver/i2c.h>
+#include <driver/uart.h>
 #include "ssd1306.h"
 #include <esp_log.h>
 #include <math.h>
 #include "driver/mcpwm.h"
+#include <driver/i2c_master.h>
+#include <esp_adc/adc_oneshot.h>
 
 #include <iot_button.h>
 #include <esp_rmaker_core.h>
@@ -18,6 +21,10 @@
 #include <ws2812_led.h>
 #include "app_priv.h"
 
+#include "DFRobotDFPlayerMini.h"
+
+// #include "DFRobotDFPlayerMini.h"
+
 static TimerHandle_t sensor_timer;
 
 /* Giá trị cảm biến hiện tại */
@@ -25,6 +32,7 @@ static float g_temperature = DEFAULT_TEMPERATURE;
 static float g_ph_value = DEFAULT_PH;         // Giá trị pH ban đầu
 static float g_turbidity_value = DEFAULT_NTU; // Giá trị độ đục ban đầu
 static bool g_power_state = false;
+static bool g_drain_state = false;
 
 // Biến toàn cục cho SSD1306
 static ssd1306_handle_t ssd1306_dev = NULL;
@@ -95,29 +103,56 @@ static float read_turbidity_sensor()
 }
 
 /* Hàm đọc cảm biến mực nước */
-static bool is_water_level_high()
-{
-    int water_level = gpio_get_level(WATER_LEVEL_GPIO);
-    ESP_LOGI(TAG, "Water level sensor state: %d", water_level);
-    return water_level; // Trả về true nếu phát hiện nước
-}
+// static bool is_water_level_high()
+// {
+//     int water_level = gpio_get_level(WATER_LEVEL_GPIO);
+//     ESP_LOGI(TAG, "Water level sensor state: %d", water_level);
+//     return water_level; // Trả về true nếu phát hiện nước
+// }
 
 void control_gpio(int gpio, bool state)
 {
     gpio_set_level(gpio, state ? 1 : 0);
-    ESP_LOGI(TAG, "GPIO %d set to %s", gpio, state ? "ON" : "OFF");
+    ESP_LOGI(TAG, "Drain set to %s", state ? "ON" : "OFF");
 }
 
 void check_sensor_and_control()
 {
+    static bool alert_sent = false;
+
     // Kiểm tra điều kiện tự động bật máy bơm
-    bool pump_state = (g_turbidity_value > 500);
-    control_gpio(PUMP_GPIO, pump_state);
+    if (g_turbidity_value > 500 && !alert_sent)
+    {
+
+        esp_rmaker_raise_alert("High turbidity");
+        gpio_set_level(MP3_GPIO, true);
+        control_gpio(DRAIN_GPIO, true);
+        esp_rmaker_param_update_and_report(
+            esp_rmaker_device_get_param_by_type(drain_device, "Power"),
+            esp_rmaker_bool(true));
+        alert_sent = true;
+    }
+    else if (g_turbidity_value < 500 && alert_sent)
+    {
+        control_gpio(DRAIN_GPIO, false);
+        gpio_set_level(MP3_GPIO, false);
+        esp_rmaker_param_update_and_report(
+            esp_rmaker_device_get_param_by_type(drain_device, "Power"),
+            esp_rmaker_bool(false));
+        alert_sent = false;
+    }
 
     // Kiểm tra điều kiện tự động bật van xả
-    bool drain_state = (is_water_level_high() == 1);
-    pump_state = false;
-    control_gpio(DRAIN_GPIO, drain_state);
+    // if (is_water_level_high() == 1)
+    // {
+    //     esp_rmaker_raise_alert("High water level");
+    //     control_gpio(PUMP_GPIO, false);
+    // }
+    // else
+    // {
+    //     control_gpio(PUMP_GPIO, true);
+    //     esp_rmaker_raise_alert(NULL);
+    // }
 }
 
 void servoDeg0()
@@ -157,12 +192,13 @@ static void app_indicator_set(bool state)
 {
     if (state)
     {
-
         servoDeg180();
+        ESP_LOGI(TAG, "Servo On");
     }
     else
     {
         servoDeg90();
+        ESP_LOGI(TAG, "Servo Off");
     }
 }
 
@@ -258,6 +294,46 @@ void display_sensor_data()
     ssd1306_refresh_gram(ssd1306_dev);
 }
 
+void init_uart()
+{
+    const uart_config_t uart_config = {
+        .baud_rate = 9600,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+    };
+
+    // Configure UART parameters
+    uart_param_config(UART_NUM, &uart_config);
+
+    // Set TX and RX pins
+    uart_set_pin(UART_NUM, CONFIG_TX_GPIO, CONFIG_RX_GPIO, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
+
+    // Install UART driver
+    uart_driver_install(UART_NUM, 2048, 0, 0, NULL, 0);
+}
+void DFPlay()
+{
+    bool debug = false;
+#if CONFIG_DEBUG_MODE
+    debug = true;
+#endif
+    bool ret = DF_begin(CONFIG_TX_GPIO, CONFIG_RX_GPIO, true, true, debug);
+    ESP_LOGI(TAG, "DF_begin=%d", ret);
+    if (!ret)
+    {
+        ESP_LOGE(TAG, "DFPlayer Mini not online.");
+        while (1)
+        {
+            vTaskDelay(1);
+        }
+    }
+    ESP_LOGI(TAG, "DFPlayer Mini online.");
+    ESP_LOGI(TAG, "Play first track on 01 folder.");
+    // Play the first mp3
+}
+
 float app_get_current_temperature()
 {
     return DEFAULT_TEMPERATURE;
@@ -282,17 +358,17 @@ esp_err_t app_sensor_init(void)
     adc1_config_channel_atten(TURBIDITY_SENSOR_GPIO, ADC_ATTEN_DB_11);
 
     // Cấu hình GPIO cho cảm biến mực nước
-    gpio_config_t io_conf = {
-        .pin_bit_mask = ((uint64_t)1 << WATER_LEVEL_GPIO),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-    };
-    gpio_config(&io_conf);
+    // gpio_config_t io_conf = {
+    //     .pin_bit_mask = ((uint64_t)1 << WATER_LEVEL_GPIO),
+    //     .mode = GPIO_MODE_INPUT,
+    //     .pull_up_en = GPIO_PULLUP_ENABLE,
+    //     .pull_down_en = GPIO_PULLDOWN_DISABLE,
+    // };
+    // gpio_config(&io_conf);
 
     // Đặt mặc định trạng thái máy xả nước
     gpio_set_level(DRAIN_GPIO, 0);
-    gpio_set_level(PUMP_GPIO, 0);
+    // gpio_set_level(PUMP_GPIO, 0);
     gpio_set_level(WATER_LEVEL_GPIO, 0);
 
     g_temperature = DEFAULT_TEMPERATURE;
@@ -325,7 +401,7 @@ void app_driver_init()
         .pull_up_en = GPIO_PULLUP_ENABLE,      // Không cần kéo lên
         .pull_down_en = GPIO_PULLDOWN_DISABLE, // Không cần kéo xuống
         .intr_type = GPIO_INTR_ANYEDGE,
-        .pin_bit_mask = ((uint64_t)1 << SERVO_GPIO) | ((uint64_t)1 << PUMP_GPIO) | ((uint64_t)1 << DRAIN_GPIO)};
+        .pin_bit_mask = ((uint64_t)1 << SERVO_GPIO) | ((uint64_t)1 << MP3_GPIO) | ((uint64_t)1 << DRAIN_GPIO)};
     gpio_config(&servo_conf);
     app_indicator_init();
     app_sensor_init();
